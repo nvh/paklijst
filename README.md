@@ -27,3 +27,7 @@ Flagging a category in the "[Paklijst Template]" makes it selected by default
 This is what your "Packing" perspective should look like:
   
 ![Packing Perspective](./packing.png)
+
+## Credit
+
+The code started off as an edit of the [Packing List Plug-In](https://omni-automation.com/omnifocus/project.html#OF0100) in the Omni Automation Plug-in Collection. 
