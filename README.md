@@ -23,3 +23,6 @@ If the same item is on multiple categories, it will only be added once to the fi
 You can calculate number of items with number of days the trip will take
 
 Flagging a category in the "[Paklijst Template]" makes it selected by default
+
+This is what your "Packing" perspective should look like:
+![Packing Perspective](./packing.png)
