@@ -11,7 +11,7 @@ Download the `paklijst.omnifocusjs` file from this repo and place it in
 - Create a "Packing" perspective that searches for items matching "Paklijst"
 - When it's time to start packing, run the automation
 - Pick categories that are relevant for the trip and select start and end dates
-- This will create a new project "Paklijst <Trip Title>"
+- This will create a new project "Paklijst &lt;Trip Title&gt;"
 
 
 ## Tips
@@ -25,4 +25,5 @@ You can calculate number of items with number of days the trip will take
 Flagging a category in the "[Paklijst Template]" makes it selected by default
 
 This is what your "Packing" perspective should look like:
+  
 ![Packing Perspective](./packing.png)
