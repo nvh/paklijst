@@ -1,0 +1,159 @@
+/*{
+	"type": "action",
+	"targets": ["omnifocus"],
+	"author": "Niels van Hoorn",
+	"identifier": "nl.zekerwaar.omnifocus.paklijst",
+	"version": "1.0",
+	"description": "Creates a project of single-actions used as a packing list.",
+	"label": "Paklijst",
+	"paletteLabel": "Packing List"
+}*/
+
+(() => {
+  var action = new PlugIn.Action(function (selection, sender) {
+    var template = projectNamed("[Paklijst Template]");
+    console.log("template", template.children);
+    var inputForm = new Form();
+    var dateFormat = Formatter.Date.Style.Short;
+    var dateFormatter = Formatter.Date.withStyle(dateFormat, dateFormat);
+
+    var taskNameField = new Form.Field.String("tripTitle", "Title", "Vakantie");
+    const now = new Date();
+    const from = new Date(now.getTime() + 24 * 3600 * 1000);
+    const to = new Date(from.getTime() + 24 * 3 * 3600 * 1000);
+    var departureDateField = new Form.Field.Date(
+      "departureDate",
+      "Leave",
+      from,
+      dateFormatter
+    );
+    var returnDateField = new Form.Field.Date(
+      "returnDate",
+      "Return",
+      to,
+      dateFormatter
+    );
+
+    inputForm.addField(taskNameField);
+    inputForm.addField(departureDateField);
+    inputForm.addField(returnDateField);
+    const categoryNames = [];
+    const categoryOptions = [];
+    const categorySelection = [];
+    for (const category of template.children) {
+      if (category.dropDate !== null) {
+        continue;
+      }
+      categoryOptions.push(category);
+      categoryNames.push(category.name);
+      if (category.flagged) {
+        categorySelection.push(category);
+      }
+    }
+    const categories = new Form.Field.MultipleOptions(
+      "categories",
+      "Type reis",
+      categoryOptions,
+      categoryNames,
+      categorySelection
+    );
+    inputForm.addField(categories);
+
+    var formPromise = inputForm.show(
+      "Enter the trip title and travel dates:",
+      "Continue"
+    );
+
+    inputForm.validate = function (formObject) {
+      currentDateTime = new Date();
+      departureDateObject = formObject.values["departureDate"];
+      departureDateStatus =
+        departureDateObject && departureDateObject > currentDateTime
+          ? true
+          : false;
+      returnDateObject = formObject.values["returnDate"];
+      returnDateStatus =
+        returnDateObject && returnDateObject > departureDateObject
+          ? true
+          : false;
+      textValue = formObject.values["tripTitle"];
+      textStatus = textValue && textValue.length > 0 ? true : false;
+      categoriesObject = formObject.values["categories"];
+      categoriesStatus = categoriesObject.length > 0 ? true : false;
+      validation =
+        textStatus &&
+        departureDateStatus &&
+        returnDateStatus &&
+        categoriesStatus
+          ? true
+          : false;
+      return validation;
+    };
+
+    formPromise.then(function (formObject) {
+      try {
+        var tripTitle = formObject.values["tripTitle"];
+        var StartDate = formObject.values["departureDate"];
+        var EndDate = formObject.values["returnDate"];
+        var tripDuration = parseInt((EndDate - StartDate) / 86400000);
+        var projectName = "Paklijst " + tripTitle;
+        var project = new Project(projectName);
+        project.status = Project.Status.Active;
+        project.containsSingletonActions = true;
+        // project.dueDate = StartDate;
+        categoriesObject = formObject.values["categories"];
+        const duplicatedTasks = duplicateTasks(categoriesObject, project);
+        const uniqueNames = new Map();
+        duplicatedTasks.map((t) =>
+          t.apply((task) => {
+            task.flagged = false;
+            if (!task.hasChildren) {
+              // Remove duplicates
+              if (uniqueNames.has(task.name)) {
+                const original = uniqueNames.get(task.name);
+                // Copy tasks to original task
+                task.tags.map((tag) => {
+                  original.addTag(tag);
+                });
+                deleteObject(task);
+              } else {
+                uniqueNames.set(task.name, task);
+                // process amounts
+                const matches = task.name.match(/{([^}]+)}/);
+                if (matches) {
+                  console.log(matches[1]);
+                  try {
+                    const result = Function(
+                      `days`,
+                      `return Math.ceil(${matches[1]})`
+                    )(tripDuration);
+                    if (typeof result === "number") {
+                      task.name = task.name.replace(matches[0], result);
+                    }
+                  } catch (e) {
+                    console.error(e);
+                  }
+                }
+              }
+            }
+          })
+        );
+        var projID = project.id.primaryKey;
+        URL.fromString("omnifocus:///task/" + projID).open();
+      } catch (err) {
+        console.error(err);
+      }
+    });
+
+    formPromise.catch(function (err) {
+      console.log("form cancelled", err.message);
+    });
+  });
+
+  action.validate = function (selection, sender) {
+    // validation code
+    return true;
+  };
+
+  return action;
+})();
